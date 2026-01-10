@@ -39,7 +39,7 @@
  */
 
 const int MS_PER_TICK = 15;
-const int MICRO_TICKS_NUM = 2; // Number of sub-ticks of simulation inside one tick
+const int MICRO_TICKS_NUM = 1; // Reduced from 2 to speed up generation
 const double SEC_PER_MICRO_TICK = MS_PER_TICK / 1000.0 / MICRO_TICKS_NUM;
 
 const Vec2d GRAVITY = Vec2d(0, 9.8 * 10 * 3 * 2);
