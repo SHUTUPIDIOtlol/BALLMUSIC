@@ -21,23 +21,19 @@
  */
 
 #include "engine.hpp"
-
+#include <cmath>
 
 std::pair<double, Vec2d> point_to_segment(Vec2d p, Vec2d a, Vec2d b) {
-    // todo: there is possible some optimizations
     double proj = (p - a) * (b - a);
     double dist;
     Vec2d normal;
     if (proj < 0) {
-        // a is the nearest point of segment to p
         dist = (p - a).len();
         normal = (p - a).normal();
     } else if (proj > (b - a).len_sqr()) {
-        // b is the nearest point of segment to p
         dist = (p - b).len();
         normal = (p - b).normal();
     } else {
-        // perpendicular projection of p on (a,b) is the nearest point
         dist = (p - a) ^ (b - a).normal();
         normal = -(b - a).rot90().normal();
         if (dist < 0) {
@@ -58,13 +54,11 @@ bool collide(Marble & a, Marble & b) {
     Vec2d relative_direction = (b.position - a.position);
     Vec2d relative_velocity = (b.velocity - a.velocity);
 
-    // Note: masses are equal
     Vec2d impulse = (relative_direction * relative_velocity) * relative_direction / dist_sqr;
 
     a.velocity += impulse;
     b.velocity -= impulse;
 
-    // Push the marbles apart of each other if they intersect
     double penetration_depth = (2 * MARBLES_RADIUS - dist);
 
     Vec2d normalized = relative_direction / dist;
@@ -87,20 +81,15 @@ bool collide(Marble &a, Plank &b) {
     Vec2d impulse = (a.velocity * normal) * normal * (1 + bounce_factor);
     a.velocity -= impulse;
 
-    // Push the marble out of plank
-    // Note: plank has fixed position, we do not need to push it
     double depth = MARBLES_RADIUS + PLANKS_WIDTH - dist;
     a.position += normal * depth;
 
     return true;
 }
 
-
 void WorldState::start() {
     time_elapsed = 0;
-
     marbles_collisions.assign(marbles.size(), -1);
-
     marbles_history.push_back(marbles);
     marbles_collisions_history.push_back(marbles_collisions);
 }
@@ -123,11 +112,18 @@ void WorldState::simulate(bool track_history) {
             marble.position += marble.velocity * SEC_PER_MICRO_TICK + GRAVITY * (SEC_PER_MICRO_TICK * SEC_PER_MICRO_TICK * 0.5);
             marble.velocity += GRAVITY * SEC_PER_MICRO_TICK;
         }
-        if (track_history)
+
+        // Only record history once per tick (last micro-tick)
+        if (track_history && m_tick == MICRO_TICKS_NUM - 1) {
             marbles_history.push_back(marbles);
+            marbles_collisions_history.push_back(marbles_collisions);
+
+            if (marbles_history.size() > 500) {
+                marbles_history.erase(marbles_history.begin());
+                marbles_collisions_history.erase(marbles_collisions_history.begin());
+            }
+        }
     }
-    if (track_history)
-        marbles_collisions_history.push_back(marbles_collisions);
     time_elapsed += MS_PER_TICK;
 }
 
